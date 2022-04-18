@@ -1,6 +1,6 @@
 {
   "name": "axios-adapter-fetch",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "axios对应fetch请求的适配器, 使用axios的方式操作fetch请求",
   "main": "fetch.js",
   "module": "index.js",
