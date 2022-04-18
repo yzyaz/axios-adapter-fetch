@@ -1,0 +1,19 @@
+{
+  "name": "axios-fetch-adapter",
+  "version": "1.0.0",
+  "description": "axios对应fetch请求的适配器, 使用axios的方式操作fetch请求",
+  "main": "index.js",
+  "license": "MIT",
+  "author": "yzyaz",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yzyaz/axios-fetch-adapter",
+    "directory": ""
+  },
+  "bugs": {
+    "url": "https://github.com/facebook/axios-fetch-adapter/issues"
+  },
+  "devDependencies": {
+    "axios": "^0.26.1"
+  }
+}
