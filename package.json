@@ -5,6 +5,10 @@
   "main": "fetch.js",
   "module": "index.js",
   "types": "index.d.ts",
+  "scripts": {
+    "example": "parcel example/index.html",
+    "postversion": "npm publish --access public & git push"
+  },
   "license": "MIT",
   "author": "yzyaz",
   "keywords": [
@@ -20,6 +24,10 @@
     "url": "https://github.com/facebook/axios-adapter-fetch/issues"
   },
   "devDependencies": {
-    "axios": "^0.26.1"
+    "axios": "^0.26.1",
+    "parcel": "^2.4.1",
+    "process": "^0.11.10",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
   }
 }
