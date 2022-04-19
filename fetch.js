@@ -78,6 +78,21 @@ module.exports = function xhrAdapter(config) {
       headers: requestHeaders,
     };
 
+    // 取消请求相关
+    controller = new AbortController();
+    signal = controller.signal;
+    fetchOptions.signal = signal;
+    if (config.cancelToken) {
+      // 取消请求
+      config.cancelToken.promise.then(function onCanceled(cancel) {
+        if (!reqing) {
+          return;
+        }
+        controller.abort();
+        reject(cancel);
+      });
+    }
+
     // 转化data数据
     if (requestData && method !== 'GET' && method !== 'HEAD') {
       fetchOptions.body = requestData;
@@ -103,22 +118,6 @@ module.exports = function xhrAdapter(config) {
     }
     if (config.referrer) {
       fetchOptions.referrer = config.referrer;
-    }
-
-    // 取消请求相关
-    if (config.cancelToken) {
-      controller = new AbortController();
-      signal = controller.signal;
-      fetchOptions.signal = signal;
-
-      // 取消请求
-      config.cancelToken.promise.then(function onCanceled(cancel) {
-        if (!reqing) {
-          return;
-        }
-        controller.abort();
-        reject(cancel);
-      });
     }
 
     // 上传进度暂不支持
@@ -186,7 +185,7 @@ module.exports = function xhrAdapter(config) {
     };
 
     // fetch请求接口函数
-    async function fetchFun(url, init) {
+    const fetchFun = async function (url, init) {
       timeoutFun();
       let fetchRes;
       reqing = true;
@@ -234,7 +233,7 @@ module.exports = function xhrAdapter(config) {
 
       // 条件判断, 是否返回正确或错误promise状态
       settle(resolve, reject, response);
-    }
+    };
 
     fetchFun(
       buildURL(fullPath, config.params, config.paramsSerializer),
