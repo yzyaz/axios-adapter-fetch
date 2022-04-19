@@ -3,7 +3,7 @@
 平时工作中一般是用axios, 对其方法属性都比较熟悉了, 而且项目中的相关配置也比较庞大. 现在想使用fetch方法代替XMLHttpRequest, 就想在axios的基础上增加对fetch的支持, 所以写了这个对于fetch的适配器, 无需改动原来的axios接口逻辑, 任何属性方法都是一致且支持的(除了上传进度,这个fetch不支持)
 
 # 优势
-1. 体积小, 压缩后600字节
+1. 体积小, 压缩后不足1kb
 2. 使用fetch代替XMLHttpRequest
 3. 完全兼容axios原来方法, 文档见axios官网即可, 无fetch学习负担
 
