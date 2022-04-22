@@ -79,18 +79,21 @@ module.exports = function xhrAdapter(config) {
     };
 
     // 取消请求相关
-    controller = new AbortController();
-    signal = controller.signal;
-    fetchOptions.signal = signal;
-    if (config.cancelToken) {
-      // 取消请求
-      config.cancelToken.promise.then(function onCanceled(cancel) {
-        if (!reqing) {
-          return;
-        }
-        controller.abort();
-        reject(cancel);
-      });
+    if ((config.timeout && config.timeout > 0) || config.cancelToken) {
+      controller = new AbortController();
+      signal = controller.signal;
+      fetchOptions.signal = signal;
+
+      if (config.cancelToken) {
+        // 取消请求
+        config.cancelToken.promise.then(function onCanceled(cancel) {
+          if (!reqing) {
+            return;
+          }
+          controller.abort();
+          reject(cancel);
+        });
+      }
     }
 
     // 转化data数据
@@ -160,7 +163,7 @@ module.exports = function xhrAdapter(config) {
 
     // 超时方法
     const timeoutFun = function () {
-      if (config.timeout && config.timeout > 0) {
+      return new Promise((_resolve, _reject) => {
         setTimeout(() => {
           let timeoutErrorMessage = config.timeout
             ? 'timeout of ' + config.timeout + 'ms exceeded'
@@ -172,7 +175,7 @@ module.exports = function xhrAdapter(config) {
           // 取消请求
           controller.abort();
           // 超时返回错误
-          resolve(
+          _reject(
             createError(
               timeoutErrorMessage,
               config,
@@ -181,63 +184,75 @@ module.exports = function xhrAdapter(config) {
             )
           );
         }, config.timeout);
-      }
+      });
     };
 
     // fetch请求接口函数
-    const fetchFun = async function (url, init) {
-      timeoutFun();
-      let fetchRes;
-      reqing = true;
-      const paramsRequest = new Request(url, init);
-      // 上传进度暂不支持
-      // onUploadProgress(paramsRequest);
-      try {
-        fetchRes = await fetch(paramsRequest);
-      } catch (error) {
-        reject(createError('Network Error', config, null, null));
-        return;
-      } finally {
-        reqing = false;
-      }
-
-      // 下载进度
-      onDownloadProgress(fetchRes);
-
-      let response = {
-        status: fetchRes.status,
-        statusText: fetchRes.statusText,
-        headers: Object.fromEntries(fetchRes.headers),
-        config: config,
-        request: fetchRes,
-      };
-      if (fetchRes.ok && fetchRes.status !== 204) {
-        switch (responseType) {
-          case 'arraybuffer':
-            response.data = await fetchRes.arrayBuffer();
-            break;
-          case 'blob':
-            response.data = await fetchRes.blob();
-            break;
-          case 'json':
-            response.data = await fetchRes.json();
-            break;
-          case 'formData':
-            response.data = await fetchRes.formData();
-            break;
-          default:
-            response.data = await fetchRes.text();
-            break;
+    const fetchFun = function (url, init) {
+      return new Promise(async (_resolve, _reject) => {
+        let fetchRes;
+        reqing = true;
+        const paramsRequest = new Request(url, init);
+        // 上传进度暂不支持
+        // onUploadProgress(paramsRequest);
+        try {
+          fetchRes = await fetch(paramsRequest);
+        } catch (error) {
+          _reject(createError('Network Error', config, null, null));
+          return;
+        } finally {
+          reqing = false;
         }
-      }
 
-      // 条件判断, 是否返回正确或错误promise状态
-      settle(resolve, reject, response);
+        // 下载进度
+        onDownloadProgress(fetchRes);
+
+        let response = {
+          status: fetchRes.status,
+          statusText: fetchRes.statusText,
+          headers: Object.fromEntries(fetchRes.headers),
+          config: config,
+          request: fetchRes,
+        };
+        if (fetchRes.ok && fetchRes.status !== 204) {
+          switch (responseType) {
+            case 'arraybuffer':
+              response.data = await fetchRes.arrayBuffer();
+              break;
+            case 'blob':
+              response.data = await fetchRes.blob();
+              break;
+            case 'json':
+              response.data = await fetchRes.json();
+              break;
+            case 'formData':
+              response.data = await fetchRes.formData();
+              break;
+            default:
+              response.data = await fetchRes.text();
+              break;
+          }
+        }
+
+        // 条件判断, 是否返回正确或错误promise状态
+        settle(_resolve, _reject, response);
+      });
     };
 
-    fetchFun(
-      buildURL(fullPath, config.params, config.paramsSerializer),
-      fetchOptions
-    );
+    // promise执行链
+    const promiseChain = [
+      fetchFun(
+        buildURL(fullPath, config.params, config.paramsSerializer),
+        fetchOptions
+      ),
+    ];
+
+    // 如果配置了超时则添加超时promise方法
+    if (config.timeout && config.timeout > 0) {
+      promiseChain.push(timeoutFun());
+    }
+
+    // 执行请求和超时promise方法, 取最先执行完成的无论错误
+    Promise.race(promiseChain).then(resolve).catch(reject);
   });
 };
